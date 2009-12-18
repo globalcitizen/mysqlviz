@@ -164,7 +164,7 @@ exit(0);
 # usage information
 function usage() {
  global $argv;
- print '[' . basename($argv[0]) . " $Rev$ - mysql database visualisation tool]\n\n";
+ print '[' . basename($argv[0]) . " - mysql database visualisation tool]\n\n";
  print "usage:\n";
  print "  " . $argv[0] . " -f <mysqldumpfile> [-r]\n";
  print "                                 ^--- 'redump' mode: generates a\n";

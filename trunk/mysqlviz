@@ -170,8 +170,8 @@ function usage() {
  print "                                 ^--- 'redump' mode: generates a\n";
  print "                                      mysqldump command line to redump.\n";
  print "toolchain:\n";
- print " $ mysqldump -d db >db.sql         # -d means 'no data', only structure\n";
- print " $ $argv[0] -f ./db.sql >./db.dot   # 'dot' is a graphviz format.\n";
+ print " $ mysqldump -d db >db.sql          # -d means 'no data', only structure\n";
+ print " $ $argv[0] -f ./db.sql >./db.dot # 'dot' is a graphviz format.\n";
  print " $ dot -Tpng db.dot >db.png         # generate image with graphviz\n\n";
  print "notes:\n";
  print " if you do not have any foreign keys defined, relationships will be\n";

@@ -24,6 +24,10 @@ if(!is_readable($file)) { error("$file is not readable."); }
 # whole paragraph containing "CREATE TABLE `"
 $cmd = "sed -e '/./{H;$!d;}' -e 'x;/CREATE TABLE `/!d;' " . escapeshellarg($file);
 exec($cmd,$output);
+# for sqlite, this fails, so we just read the file
+if(count($output) == 0) {
+ $output = preg_split("/\n/",file_get_contents($file));
+}
 
 # split in to tables
 $tables = array();
@@ -34,6 +38,7 @@ foreach($output as $line) {
  if(strpos($line,'CREATE TABLE') === 0) {
   # extract table name
   list($x,$table_name) = split('`',$line,3);
+  if($table_name=='') { list($x,$table_name) = split('"',$line,3); }
   # store last table definition if necessary
   if($current_table!='') {
    $tables[$current_table]['create'] = $current_table_definition;
@@ -44,16 +49,32 @@ foreach($output as $line) {
  }
  # otherwise, if we're on the primary key...
  elseif(strpos($line,'PRIMARY KEY')>0) {
-  list($x,$field) = split('`',$line,3);
+  list($x,$field,$remnants) = split('`',$line,3);
+  if($field == '') { list($x,$field,$remnants) = split('"',$line,3); }
   $tables[$current_table]['pk'] = $field;
+  $tables[$current_table]['fields'][$field] = preg_replace('/,\s*$/','',ltrim($remnants));
  }
  # some other line...
  else {
   # if it starts with ` (maybe after whitespace), it's a field.
   $line = ltrim($line);
-  if(strpos($line,'`')===0) {
+  if(strpos($line,'`')===0 || strpos($line,'"')===0) {
    list($x,$field,$remnants) = split('`',$line,3);
+   if($field=='') {
+    list($x,$field,$remnants) = split('"',$line,3);
+   }
    $tables[$current_table]['fields'][$field] = preg_replace('/,\s*$/','',ltrim($remnants));
+   # detect sqlite3 foreign key definitions
+   if(preg_match('/ REFERENCES "(.*?)" \(\"(.*?)\"\)/',$remnants,$matches)) {
+    array_shift($matches);
+    $local_column = $field;
+    list($foreign_table,$foreign_column) = $matches;
+    # store
+    $tables[$current_table]['fk'][$local_column] = array(
+     'table' => $foreign_table,
+     'column' => $foreign_column
+    );
+   }
   }
   # foreign key
   #   eg: CONSTRAINT `sometable__parent_fk` FOREIGN KEY (`parent`) 
@@ -164,13 +185,15 @@ exit(0);
 # usage information
 function usage() {
  global $argv;
- print '[' . basename($argv[0]) . " - mysql database visualisation tool]\n\n";
+ print '[' . basename($argv[0]) . " - mysql + sqlite database visualisation tool]\n\n";
  print "usage:\n";
- print "  " . $argv[0] . " -f <mysqldumpfile> [-r]\n";
+ print "  " . $argv[0] . " -f <sqldumpfile> [-r]\n";
  print "                                 ^--- 'redump' mode: generates a\n";
  print "                                      mysqldump command line to redump.\n";
  print "toolchain:\n";
- print " $ mysqldump -d db >db.sql          # -d means 'no data', only structure\n";
+ print " $ mysqldump -d db >db.sql          # MySQL: -d = 'no data', only structure\n";
+ print "    - OR -\n";
+ print " $ sqlite database.db .dump >db.sql # SQLite (also: 'sqlite3 ...')\n";
  print " $ $argv[0] -f ./db.sql >./db.dot # 'dot' is a graphviz format.\n";
  print " $ dot -Tpng db.dot >db.png         # generate image with graphviz\n\n";
  print "notes:\n";

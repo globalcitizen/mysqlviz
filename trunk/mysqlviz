@@ -1,5 +1,5 @@
 #!/usr/bin/php
-<?
+<?php
 
 # mysqlviz $Rev$ / $Date$
 
@@ -217,5 +217,3 @@ function warning($warning) {
  fwrite($stderr,"(WARNING: $warning)\n");
  fclose($stderr);
 }
-
-?>

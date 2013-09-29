@@ -1,7 +1,10 @@
-#!/usr/bin/php
+#!/usr/bin/env php
 <?php
 
 # mysqlviz $Rev$ / $Date$
+
+# silence warnings
+ini_set('error_reporting',E_ERROR);
 
 # used for automated guessing of table relationships
 $standard_table_prefixes=array('','tbl','tbl_','table','table_');
@@ -37,8 +40,8 @@ foreach($output as $line) {
  # if this line begins a table definition
  if(strpos($line,'CREATE TABLE') === 0) {
   # extract table name
-  list($x,$table_name) = split('`',$line,3);
-  if($table_name=='') { list($x,$table_name) = split('"',$line,3); }
+  list($x,$table_name) = explode('`',$line,3);
+  if($table_name=='') { list($x,$table_name) = explode('"',$line,3); }
   # store last table definition if necessary
   if($current_table!='') {
    $tables[$current_table]['create'] = $current_table_definition;
@@ -49,8 +52,8 @@ foreach($output as $line) {
  }
  # otherwise, if we're on the primary key...
  elseif(strpos($line,'PRIMARY KEY')>0) {
-  list($x,$field,$remnants) = split('`',$line,3);
-  if($field == '') { list($x,$field,$remnants) = split('"',$line,3); }
+  list($x,$field,$remnants) = explode('`',$line,3);
+  if($field == '') { list($x,$field,$remnants) = explode('"',$line,3); }
   $tables[$current_table]['pk'] = $field;
   $tables[$current_table]['fields'][$field] = preg_replace('/,\s*$/','',ltrim($remnants));
  }
@@ -59,9 +62,9 @@ foreach($output as $line) {
   # if it starts with ` (maybe after whitespace), it's a field.
   $line = ltrim($line);
   if(strpos($line,'`')===0 || strpos($line,'"')===0) {
-   list($x,$field,$remnants) = split('`',$line,3);
+   list($x,$field,$remnants) = explode('`',$line,3);
    if($field=='') {
-    list($x,$field,$remnants) = split('"',$line,3);
+    list($x,$field,$remnants) = explode('"',$line,3);
    }
    $tables[$current_table]['fields'][$field] = preg_replace('/,\s*$/','',ltrim($remnants));
    # detect sqlite3 foreign key definitions
@@ -82,7 +85,7 @@ foreach($output as $line) {
   #                                     ON UPDATE CASCADE
   elseif(strpos($line,'` FOREIGN KEY (`')>1) {
    # get fk name, fk field, referenced table, referenced column
-   list($x,$fk_name,$x,$local_column,$x,$foreign_table,$x,$foreign_column,$remnants) = split('`',$line,9);
+   list($x,$fk_name,$x,$local_column,$x,$foreign_table,$x,$foreign_column,$remnants) = explode('`',$line,9);
    # parse remnants
    preg_match_all('/ON (\w+?) ((?:\w+|SET \w+))/',$remnants,$matches);
    array_shift($matches);
@@ -108,7 +111,7 @@ if(isset($opts['r'])) {
  # extract hostname and database from file
  $cmd = "grep -m1 -i '^-- Host: ' ".escapeshellarg($file)."|cut -d ':' -f2,3 |cut -d ' ' -f2- |sed 's/ *Database://'";
  $result = exec($cmd);
- list($hostname,$database) = split(' ',$result,2);
+ list($hostname,$database) = explode(' ',$result,2);
  print "mysqldump -h " . escapeshellarg($hostname) . " -u root -p " . escapeshellarg($database) . " " . join(' ',array_keys($tables)) . "\n";
  exit(0);
 }
